@@ -3,38 +3,104 @@
 <head>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Inter, sans-serif; font-size: 13px; padding: 16px; background: #fff; color: #333; }
-    h2 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
-    .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-    label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    html, body { height: 100%; }
+    body {
+      font-family: Inter, sans-serif; font-size: 13px; padding: 16px;
+      background: #fff; color: #111;
+      display: flex; flex-direction: column;
+    }
+    h2 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .description { font-size: 12px; color: #444; margin-bottom: 20px; line-height: 1.5; }
+
+    .options { display: flex; flex-direction: column; gap: 14px; flex: 1; }
+
+    .option-row { display: flex; flex-direction: column; gap: 4px; }
+    .option-row label {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+    }
+    input[type="checkbox"] {
+      width: 16px; height: 16px; flex-shrink: 0;
+      accent-color: #3b0fc0; cursor: pointer;
+    }
+
+    .what-link {
+      font-size: 11px; color: #888; margin-left: 26px;
+      cursor: pointer; text-decoration: none; display: inline-block;
+    }
+    .what-link:hover { color: #3b0fc0; }
+
+    .explainer {
+      display: none; margin-left: 26px; margin-top: 6px;
+      font-size: 11px; color: #555; line-height: 1.6;
+      border-left: 2px solid #e0e0e0; padding-left: 10px;
+    }
+    .explainer p + p { margin-top: 6px; }
+    .explainer.open { display: block; }
+
+    .got-it {
+      display: inline-block; margin-top: 8px;
+      font-size: 11px; color: #3b0fc0; cursor: pointer; text-decoration: none;
+    }
+    .got-it:hover { text-decoration: underline; }
+
+    .footer { padding-top: 16px; }
     button {
-      width: 100%; padding: 8px; background: #18a0fb; color: #fff;
-      border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
+      width: 100%; padding: 11px; background: #3b0fc0; color: #fff;
+      border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
     }
-    button:hover { background: #0d8de0; }
-    #output {
-      margin-top: 12px; display: none; flex-direction: column; gap: 8px;
-    }
-    .error { margin-top: 8px; font-size: 12px; }
+    button:hover { background: #2e0aa0; }
+    #status { margin-top: 8px; font-size: 11px; min-height: 16px; }
   </style>
 </head>
 <body>
-  <h2>Copy as SVG with currentColor</h2>
+  <h2>Copy as SVG with 'currentColor'</h2>
+  <p class="description">In an SVG, 'currentColor' makes fill or stroke inherit the element's CSS color value.</p>
 
   <div class="options">
-    <label><input type="checkbox" id="fills" checked> Replace fills with currentColor</label>
-    <label><input type="checkbox" id="strokes" checked> Replace strokes with currentColor</label>
-    <label><input type="checkbox" id="masks"> Replace colors inside masks/clipPaths</label>
+    <div class="option-row">
+      <label><input type="checkbox" id="fills" checked> Replace fills</label>
+    </div>
+
+    <div class="option-row">
+      <label><input type="checkbox" id="strokes" checked> Replace Strokes</label>
+    </div>
+
+    <div class="option-row">
+      <label><input type="checkbox" id="masks"> Replace colors inside masks/clipPaths</label>
+      <a class="what-link" id="whatLink">What does this mean?</a>
+      <div class="explainer" id="explainer">
+        <p>Masks often use black, white, or grayscale shapes to control visibility.</p>
+        <p>ClipPaths define visible areas but can still contain styled shapes.</p>
+        <p>If you convert those colors to currentColor, you might unintentionally change how the masking behaves.</p>
+        <a class="got-it" id="gotIt">Got it</a>
+      </div>
+    </div>
   </div>
 
-  <button id="exportBtn">Copy SVG</button>
-  <div id="status" class="error"></div>
+  <div class="footer">
+    <button id="exportBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy SVG
+    </button>
+    <div id="status"></div>
+  </div>
 
   <script>
+    // Expand/collapse explainer
+    document.getElementById('whatLink').addEventListener('click', () => {
+      document.getElementById('explainer').classList.add('open');
+      document.getElementById('whatLink').style.display = 'none';
+      figma.ui && parent.postMessage({ pluginMessage: { type: 'resize', height: 360 } }, '*');
+    });
+    document.getElementById('gotIt').addEventListener('click', () => {
+      document.getElementById('explainer').classList.remove('open');
+      document.getElementById('whatLink').style.display = 'inline-block';
+    });
 
     document.getElementById('exportBtn').addEventListener('click', () => {
       document.getElementById('status').textContent = '';
-
       parent.postMessage({
         pluginMessage: {
           type: 'export',
@@ -50,7 +116,6 @@
     window.onmessage = (event) => {
       const msg = event.data.pluginMessage;
       if (!msg) return;
-
       const status = document.getElementById('status');
 
       if (msg.type === 'error') {
