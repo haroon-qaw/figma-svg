@@ -3,6 +3,6 @@
     "id": "svg-current-color",
     "api": "1.0.0",
     "main": "code.js",
-    "ui": { "html": "ui.html", "width": 400, "height": 280 },
+    "ui": "ui.html",
     "editorType": ["figma"]
   }
