@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 424, height: 380 });
+figma.showUI(__html__, { width: 424, height: 400 });
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'resize') return;
