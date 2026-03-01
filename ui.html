@@ -15,22 +15,7 @@
     #output {
       margin-top: 12px; display: none; flex-direction: column; gap: 8px;
     }
-    .svg-block {
-      border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden;
-    }
-    .svg-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 6px 10px; background: #f5f5f5; font-weight: 500;
-    }
-    .copy-btn {
-      width: auto; padding: 3px 10px; font-size: 11px; background: #333; border-radius: 4px;
-    }
-    .copy-btn:hover { background: #000; }
-    textarea {
-      width: 100%; height: 100px; padding: 8px; border: none;
-      font-family: monospace; font-size: 11px; resize: vertical; outline: none;
-    }
-    .error { color: #e03; margin-top: 8px; font-size: 12px; }
+    .error { margin-top: 8px; font-size: 12px; }
   </style>
 </head>
 <body>
@@ -41,15 +26,12 @@
     <label><input type="checkbox" id="strokes" checked> Replace strokes with currentColor</label>
   </div>
 
-  <button id="exportBtn">Export Selected</button>
-  <div id="error" class="error"></div>
-  <div id="output"></div>
+  <button id="exportBtn">Copy SVG</button>
+  <div id="status" class="error"></div>
 
   <script>
     document.getElementById('exportBtn').addEventListener('click', () => {
-      document.getElementById('error').textContent = '';
-      document.getElementById('output').style.display = 'none';
-      document.getElementById('output').innerHTML = '';
+      document.getElementById('status').textContent = '';
 
       parent.postMessage({
         pluginMessage: {
@@ -66,42 +48,20 @@
       const msg = event.data.pluginMessage;
       if (!msg) return;
 
+      const status = document.getElementById('status');
+
       if (msg.type === 'error') {
-        document.getElementById('error').textContent = msg.message;
+        status.style.color = '#e03';
+        status.textContent = msg.message;
         return;
       }
 
       if (msg.type === 'result') {
-        const output = document.getElementById('output');
-        output.style.display = 'flex';
-
-        msg.results.forEach(({ name, svg }) => {
-          const block = document.createElement('div');
-          block.className = 'svg-block';
-
-          const header = document.createElement('div');
-          header.className = 'svg-header';
-          header.innerHTML = `<span>${name}</span>`;
-
-          const copyBtn = document.createElement('button');
-          copyBtn.className = 'copy-btn';
-          copyBtn.textContent = 'Copy';
-          copyBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(svg).then(() => {
-              copyBtn.textContent = 'Copied!';
-              setTimeout(() => copyBtn.textContent = 'Copy', 1500);
-            });
-          });
-
-          header.appendChild(copyBtn);
-
-          const ta = document.createElement('textarea');
-          ta.value = svg;
-          ta.readOnly = true;
-
-          block.appendChild(header);
-          block.appendChild(ta);
-          output.appendChild(block);
+        const svg = msg.results.map(r => r.svg).join('\n');
+        navigator.clipboard.writeText(svg).then(() => {
+          status.style.color = '#1a7';
+          status.textContent = '✓ Copied to clipboard!';
+          setTimeout(() => status.textContent = '', 2000);
         });
       }
     };
