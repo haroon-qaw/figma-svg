@@ -22,21 +22,31 @@ figma.ui.onmessage = async (msg) => {
 };
 
 function convertToCurrentColor(svg, options = {}) {
-  const { replaceFills = true, replaceStrokes = true } = options;
+  const { replaceFills = true, replaceStrokes = true, replaceMasks = false } = options;
 
-  let result = svg;
+  const protected = [];
+  let result = svg.replace(/<(mask|clipPath)[\s\S]*?<\/\1>/gi, (match) => {
+    protected.push(match);
+    return `%%PROTECTED_${protected.length - 1}%%`;
+  });
 
-  if (replaceFills) {
-    // Replace fill="<color>" but not fill="none"
-    result = result.replace(/fill="(?!none)([^"]+)"/gi, 'fill="currentColor"');
-    // Replace fill in style attributes
-    result = result.replace(/fill:\s*(?!none)[^;")]+/gi, 'fill:currentColor');
-  }
+  const applyReplacements = (str) => {
+    if (replaceFills) {
+      str = str.replace(/fill="(?!none)([^"]+)"/gi, 'fill="currentColor"');
+      str = str.replace(/fill:\s*(?!none)[^;")]+/gi, 'fill:currentColor');
+    }
+    if (replaceStrokes) {
+      str = str.replace(/stroke="(?!none)([^"]+)"/gi, 'stroke="currentColor"');
+      str = str.replace(/stroke:\s*(?!none)[^;")]+/gi, 'stroke:currentColor');
+    }
+    return str;
+  };
 
-  if (replaceStrokes) {
-    result = result.replace(/stroke="(?!none)([^"]+)"/gi, 'stroke="currentColor"');
-    result = result.replace(/stroke:\s*(?!none)[^;")]+/gi, 'stroke:currentColor');
-  }
+  result = applyReplacements(result);
+
+  result = result.replace(/%%PROTECTED_(\d+)%%/g, (_, i) => {
+    return replaceMasks ? applyReplacements(protected[i]) : protected[i];
+  });
 
   return result;
 }

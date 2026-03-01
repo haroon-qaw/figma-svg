@@ -24,6 +24,7 @@
   <div class="options">
     <label><input type="checkbox" id="fills" checked> Replace fills with currentColor</label>
     <label><input type="checkbox" id="strokes" checked> Replace strokes with currentColor</label>
+    <label><input type="checkbox" id="masks"> Replace colors inside masks/clipPaths</label>
   </div>
 
   <button id="exportBtn">Copy SVG</button>
@@ -39,6 +40,7 @@
           options: {
             replaceFills: document.getElementById('fills').checked,
             replaceStrokes: document.getElementById('strokes').checked,
+            replaceMasks: document.getElementById('masks').checked,
           }
         }
       }, '*');
