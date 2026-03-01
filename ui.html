@@ -58,11 +58,15 @@
 
       if (msg.type === 'result') {
         const svg = msg.results.map(r => r.svg).join('\n');
-        navigator.clipboard.writeText(svg).then(() => {
-          status.style.color = '#1a7';
-          status.textContent = '✓ Copied to clipboard!';
-          setTimeout(() => status.textContent = '', 2000);
-        });
+        const ta = document.createElement('textarea');
+        ta.value = svg;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        status.style.color = '#1a7';
+        status.textContent = '✓ Copied to clipboard!';
+        setTimeout(() => status.textContent = '', 2000);
       }
     };
   </script>
