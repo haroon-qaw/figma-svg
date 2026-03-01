@@ -1,10 +1,7 @@
-figma.showUI(__html__, { width: 400, height: 280 });
+figma.showUI(__html__, { width: 400, height: 360 });
 
 figma.ui.onmessage = async (msg) => {
-  if (msg.type === 'resize') {
-    figma.ui.resize(400, msg.height);
-    return;
-  }
+  if (msg.type === 'resize') return;
 
   if (msg.type === 'export') {
     const nodes = figma.currentPage.selection;
