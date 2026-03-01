@@ -24,10 +24,10 @@ figma.ui.onmessage = async (msg) => {
 function convertToCurrentColor(svg, options = {}) {
   const { replaceFills = true, replaceStrokes = true, replaceMasks = false } = options;
 
-  const protected = [];
+  const saved = [];
   let result = svg.replace(/<(mask|clipPath)[\s\S]*?<\/\1>/gi, (match) => {
-    protected.push(match);
-    return `%%PROTECTED_${protected.length - 1}%%`;
+    saved.push(match);
+    return `%%PROTECTED_${saved.length - 1}%%`;
   });
 
   const applyReplacements = (str) => {
@@ -45,7 +45,7 @@ function convertToCurrentColor(svg, options = {}) {
   result = applyReplacements(result);
 
   result = result.replace(/%%PROTECTED_(\d+)%%/g, (_, i) => {
-    return replaceMasks ? applyReplacements(protected[i]) : protected[i];
+    return replaceMasks ? applyReplacements(saved[i]) : saved[i];
   });
 
   return result;
