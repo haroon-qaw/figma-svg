@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 424, height: 400 });
+figma.showUI(__html__, { width: 424, height: 600 });
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'resize') return;
@@ -15,7 +15,10 @@ figma.ui.onmessage = async (msg) => {
 
     for (const node of nodes) {
       const svg = await node.exportAsync({ format: 'SVG_STRING' });
-      const converted = convertToCurrentColor(svg, msg.options);
+      let converted = convertToCurrentColor(svg, msg.options);
+      if (msg.options.responsive) {
+        converted = makeSvgResponsive(converted);
+      }
       results.push({ name: node.name, svg: converted });
     }
 
@@ -51,4 +54,13 @@ function convertToCurrentColor(svg, options = {}) {
   });
 
   return result;
+}
+
+function makeSvgResponsive(svgString) {
+  return svgString.replace(/<svg(\s[^>]*)>/i, (match, attrs) => {
+    const cleaned = attrs
+      .replace(/\s*width="[^"]*"/i, '')
+      .replace(/\s*height="[^"]*"/i, '');
+    return '<svg' + cleaned + '>';
+  });
 }
