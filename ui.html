@@ -49,20 +49,89 @@
     }
     .what-link:hover { color: var(--color-primary); text-decoration: underline; }
 
-    .explainer {
-      display: none; margin-left: 26px; margin-top: 6px;
-      font-size: var(--font-size-xs); color: var(--color-text-explainer); line-height: 1.6;
-      border-left: 1px solid var(--color-border); padding-left: 10px;
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
     }
-    .explainer p + p { margin-top: 6px; }
-    .explainer.open { display: block; }
-
-    .got-it {
-      display: inline-block; margin-top: 8px;
-      font-size: var(--font-size-xs); color: var(--color-primary); cursor: pointer; text-decoration: none;
-      transition: color 0.2s ease, text-decoration-color 0.2s ease;
+    .overlay.open { display: flex; }
+    .overlay-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      transition: opacity 0.25s ease;
     }
-    .got-it:hover { text-decoration: underline; }
+    .overlay.open .overlay-backdrop { opacity: 1; }
+    .overlay-card-wrap {
+      width: 100%;
+      height: 60vh;
+      overflow: hidden;
+      position: relative;
+    }
+    .overlay-card {
+      position: relative;
+      width: 100%;
+      height: calc(60vh + 80px);
+      background: #EBEEF7;
+      border-radius: 12px 12px 0 0;
+      padding: 12px 12px 24px 24px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+    .overlay.open.overlay-visible .overlay-card {
+      transform: translateY(0);
+    }
+    .overlay-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      color: #111;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .overlay-close:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+    .overlay-close-icon {
+      font-size: 24px;
+      line-height: 1;
+      color: #111;
+      font-weight: 300;
+    }
+    .overlay-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding-top: 44px;
+    }
+    .overlay-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 12px;
+    }
+    .overlay-body {
+      font-size: 16px;
+      color: var(--color-text-explainer);
+      line-height: 1.6;
+      text-align: left;
+    }
+    .overlay-body p + p { margin-top: 10px; }
 
     .footer { padding-top: 16px; }
     button {
@@ -100,21 +169,27 @@
 
     <div class="option-row">
       <label><input type="checkbox" id="masks"> Replace colors inside Masks/ClipPaths</label>
-      <a class="what-link" id="whatLinkMasks">What does this mean?</a>
-      <div class="explainer" id="explainerMasks">
-        <p>Masks and <span class="code-term">clipPaths</span> rely on specific colors for visibility.</p>
-        <p>Converting them to <span class="code-term">currentColor</span> may change how they behave.</p>
-        <a class="got-it" id="gotItMasks">Got it</a>
-      </div>
+      <a class="what-link" id="whatLinkMasks">Learn more</a>
     </div>
 
     <div class="option-row">
       <label><input type="checkbox" id="responsive"> Make SVG responsive</label>
-      <a class="what-link" id="whatLinkResponsive">What does this mean?</a>
-      <div class="explainer" id="explainerResponsive">
-        <p>Make the SVG scale to its parent by using a <span class="code-term">viewBox</span> and removing fixed <span class="code-term">width</span> & <span class="code-term">height</span>.</p>
-        <a class="got-it" id="gotItResponsive">Got it</a>
+      <a class="what-link" id="whatLinkResponsive">Learn more</a>
+    </div>
+  </div>
+
+  <div class="overlay" id="explainerOverlay">
+    <div class="overlay-backdrop" id="overlayBackdrop"></div>
+    <div class="overlay-card-wrap">
+    <div class="overlay-card">
+      <button type="button" class="overlay-close" id="overlayClose" aria-label="Close">
+        <span class="overlay-close-icon" aria-hidden="true">×</span>
+      </button>
+      <div class="overlay-content">
+        <h3 class="overlay-title" id="overlayTitle"></h3>
+        <div class="overlay-body" id="overlayBody"></div>
       </div>
+    </div>
     </div>
   </div>
 
@@ -127,25 +202,45 @@
   </div>
 
   <script>
-    // Expand/collapse explainers
-    document.getElementById('whatLinkMasks').addEventListener('click', () => {
-      document.getElementById('explainerMasks').classList.add('open');
-      document.getElementById('whatLinkMasks').style.display = 'none';
-      figma.ui && parent.postMessage({ pluginMessage: { type: 'resize', height: 360 } }, '*');
+    const overlay = document.getElementById('explainerOverlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayBody = document.getElementById('overlayBody');
+    const overlayClose = document.getElementById('overlayClose');
+
+    const explainers = {
+      masks: { title: 'Replace colors inside Masks/ClipPaths', body: '<p>Masks and <span class="code-term">clipPaths</span> rely on specific colors for visibility.</p><p>Converting them to <span class="code-term">currentColor</span> may change how they behave.</p>' },
+      responsive: { title: 'Make SVG responsive', body: '<p>Make the SVG scale to its parent by using a <span class="code-term">viewBox</span> and removing fixed <span class="code-term">width</span> & <span class="code-term">height</span>.</p>' }
+    };
+
+    function openOverlay(title, bodyHtml) {
+      overlayTitle.textContent = title;
+      overlayBody.innerHTML = bodyHtml;
+      overlay.classList.add('open');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => overlay.classList.add('overlay-visible'));
+      });
+    }
+    function closeOverlay() {
+      overlay.classList.remove('overlay-visible');
+      const card = overlay.querySelector('.overlay-card');
+      card.addEventListener('transitionend', function onClosed(e) {
+        if (e.propertyName === 'transform') {
+          overlay.classList.remove('open');
+          card.removeEventListener('transitionend', onClosed);
+        }
+      });
+    }
+
+    document.getElementById('whatLinkMasks').addEventListener('click', (e) => {
+      e.preventDefault();
+      openOverlay(explainers.masks.title, explainers.masks.body);
     });
-    document.getElementById('gotItMasks').addEventListener('click', () => {
-      document.getElementById('explainerMasks').classList.remove('open');
-      document.getElementById('whatLinkMasks').style.display = 'inline-block';
+    document.getElementById('whatLinkResponsive').addEventListener('click', (e) => {
+      e.preventDefault();
+      openOverlay(explainers.responsive.title, explainers.responsive.body);
     });
-    document.getElementById('whatLinkResponsive').addEventListener('click', () => {
-      document.getElementById('explainerResponsive').classList.add('open');
-      document.getElementById('whatLinkResponsive').style.display = 'none';
-      figma.ui && parent.postMessage({ pluginMessage: { type: 'resize', height: 360 } }, '*');
-    });
-    document.getElementById('gotItResponsive').addEventListener('click', () => {
-      document.getElementById('explainerResponsive').classList.remove('open');
-      document.getElementById('whatLinkResponsive').style.display = 'inline-block';
-    });
+    overlayClose.addEventListener('click', closeOverlay);
+    document.getElementById('overlayBackdrop').addEventListener('click', closeOverlay);
 
     document.getElementById('exportBtn').addEventListener('click', () => {
       document.getElementById('status').textContent = '';
